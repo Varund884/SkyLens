@@ -1,0 +1,13 @@
+data/raw/
+data/staged/
+*.pkl
+*.env
+.env
+__pycache__/
+node_modules/
+.venv/
+local.settings.json
+CLAUDE.md
+.DS_Store
+**/.DS_Store
+CLAUDE.md
