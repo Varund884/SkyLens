@@ -1,0 +1,34 @@
+aircraft rows        : 330,325
+flightnumber present : 194,138 (58.8%)
+  ICAO callsign      : 183,768 (94.7%)
+  N-registration     : 1,549
+  other              : 8,821
+
+top carrier prefixes:
+0
+ACA    25374
+JZA    21200
+WJA    16993
+WEN     5236
+POE     4291
+AIE     2635
+PAG     2557
+TSC     2452
+UAL     2331
+ROU     2315
+GGN     2033
+AAL     1847
+DAL     1774
+FAB     1756
+PCO     1717
+SWG     1598
+GLR     1584
+BLS     1573
+SKW     1485
+CJT     1373
+
+CA registrations     : 138,542
+  4 chars            : 99.9%
+  start with F or G  : 99.9%
+  contain a dash     : 0.0%  (normalize with 'C-' prefix)
+foreign registrations: 18,346
