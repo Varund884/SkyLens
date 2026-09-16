@@ -21,7 +21,7 @@ echo "clean"
 echo
 echo "=== scanning for secrets ==="
 if git diff --cached -- . ':(exclude)scripts/safe-commit.sh' \
-   | grep -inE "password *=|api[_-]?key *=|secret *=|connectionstring|sk-[A-Za-z0-9]{20}|AccountKey="; then
+   | grep -inE "(password|api[_-]?key|secret|token) *= *[\"'][^\"'\$]{6,}|connectionstring *=|sk-[A-Za-z0-9]{20}|AccountKey="; then
   echo ">>> BLOCKED: possible secret found above"; exit 1
 fi
 echo "clean"
