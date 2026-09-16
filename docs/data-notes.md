@@ -186,3 +186,18 @@ ProbableCause. Mapping NTSB to CICTT is the substantive harmonization work.
 139,946 CADORS records (25%) are categorized 'Other' - too broad to map
 meaningfully. Counted in totals, excluded from category breakdown charts,
 disclosed in the app's data limitations section.
+
+## Azure OpenAI
+Resource: vdawrha-4857-resource (AIServices/Foundry), rg skylens-rg, West US 3.
+Note: West US 3, not Canada Central — Foundry chose the region. Relevant to
+data residency and to any future region-restricting policy.
+
+Endpoint form is https://<resource>.services.ai.azure.com/ for Foundry
+resources, NOT the .openai.azure.com form used by classic Azure OpenAI.
+
+Deployments (names are stable; code never references the underlying model):
+  chat       -> gpt-4.1-mini (2025-04-14), Global Standard
+  embeddings -> text-embedding-3-small v1, 1536 dims, Global Standard
+
+gpt-4o-mini is deprecated for new deployments as of Sept 2026.
+Embedding dimension 1536 must match the AI Search index vector field.
