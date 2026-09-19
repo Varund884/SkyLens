@@ -90,19 +90,30 @@ handling needed despite the 0E-18 display form. Range 0 to 229, zero nulls.
 
 CADORS strips the dash: 4 chars, 99.9% start with F or G, none contain '-'.
 Normalize by prefixing 'C-' ('FLPA' -> C-FLPA).
-foreignaircraftregistration is already correct ('N6409H').
+foreignaircraftregistration is correct for US marks ('N6409H') but other
+countries are also dashless ('A6XWE' = A6-XWE, 'EIGAJ' = EI-GAJ). Stored as
+reported. Joins to BTS Tail_Number are unaffected, since BTS is US-only.
 CA regs: 138,542 | foreign regs: 18,346
 
 ## Aerodrome matching - verified
 
-1,437 distinct CADORS aerodromes, 98.9% match OurAirports ident.
+1,437 distinct CADORS aerodromes. 98.9% match OurAirports ident directly.
 
-Unmatched are CLOSED airports that OurAirports excludes under type='closed':
-CYKZ (Toronto Buttonville, 1593 records), CYXD (Edmonton City Centre, 872),
-CYSR, CSK3, CSS3, CNB9, CYTB, CPN4.
+The unmatched codes are not missing airports. When an airport closes or
+changes code, OurAirports renames its ident and keeps the old code only in
+the free-text `keywords` field:
+  CYKZ (Toronto Buttonville, 1,593 records) -> CA-1108, closed
+  CYXD (Edmonton City Centre, 872)          -> CA-1110, closed
+  CNB9 -> CYLS (Barrie), CPN4 -> CYHS (Hanover), CYTB -> CNQ4 (Tillsonburg)
 
-Do NOT filter closed airports out of dim_airport. Flag them is_closed
-instead, or 2,500+ records lose their location.
+Fix: etl/airports.py harvests 4-character ICAO-style codes from keywords into
+an alias table (652 aliases; ambiguous ones dropped, live idents never
+shadowed). Closed airports are kept and flagged is_closed.
+Result: 99.94% of all-history aerodromes match, 99.995% in the analysis
+window (1 unmatched record: CHB3).
+
+pandas reads the text 'NA' as missing by default; all reads of code columns
+use keep_default_na=False.
 
 ## Null aerodromes are en-route - verified
 
@@ -155,23 +166,23 @@ Loaded with in_analysis_window = 0.
 
 Delimited hierarchy, not free text. 100% contain ' - '.
 Mean 3.05 findings per row (median 3, max 27).
-Split on ', ' for separate findings, ' - ' for hierarchy levels.
+' - ' separates hierarchy levels. Entries are separated by ', ', but entries
+can contain commas themselves ('Intake anti-ice, deice'), so a naive split on
+', ' produces junk classes ('deice', 'main system', 'etc)').
+Correct split: only on ', ' followed by a known level-1 class and ' - '.
 
-23 level-1 classes, but requires normalization:
-  'Personnel issues' (17,447) vs 'Personnel' (161) - same class
-  'Organizational issues' (600) vs 'Organizational' (189) - same class
-  'deice' (100) - malformed value
-  'Pipeline', 'Vessels and equipment' - non-aviation records in the export
-
-Filter to Mode == 'Aviation' before use.
-Usable classes after cleanup: Personnel issues, Aircraft, Environmental
-issues, Organizational issues, Not determined.
+The apparent duplicates 'Personnel' / 'Organizational' occur only in the
+non-aviation rows (marine, rail) and disappear with Mode == 'Aviation'.
+Result: exactly 5 level-1 classes - Personnel issues, Aircraft,
+Environmental issues, Organizational issues, Not determined.
 
 ### N# format
 
 80.2% start with 'N'. Multi-aircraft rows hold comma-separated values
 ('N4407T, N2889K'). Foreign registrations appear ('CN-ROJ').
-Split on ', ' and take the first element.
+Split on ', ' and take the first element. N# sometimes holds prose
+('UNREGISTERED ULTRALIGHT'); values that are not a 2-10 character mark are
+treated as missing.
 
 ## Taxonomy harmonization
 
@@ -201,3 +212,75 @@ Deployments (names are stable; code never references the underlying model):
 
 gpt-4o-mini is deprecated for new deployments as of Sept 2026.
 Embedding dimension 1536 must match the AI Search index vector field.
+
+## Findings from building the parsers
+
+### Occurrences have many categories and many aircraft
+In the analysis window, 5,816 of 23,277 categorized CADORS occurrences carry
+2-7 CICTT categories (CICTT explicitly permits multiple coding), and 2,078 of
+15,263 occurrences with aircraft involve 2-23 aircraft (the largest is one
+en-route ATC event with 23). Joining either into fact_occurrence would
+duplicate occurrences and inflate every count.
+Model (db/migrate_001.sql): fact_occurrence stays one row per occurrence;
+bridge_occurrence_category and fact_occurrence_aircraft hold the detail.
+category_key on fact_occurrence is a convenience "primary" category: the
+least frequent code in the window, skipping OTHR/UNK unless nothing else
+applies. Breakdown charts must use the bridge table.
+
+### CADORS event names
+23,284 of 23,285 window occurrences have at least one named event (max 267
+chars joined). Stored as event_names; this is the input to plain-language
+summaries for Canadian records.
+
+### NTSB rate file is not US-only
+474 of 1,700 aviation rows in ntsb_12mo.csv are foreign events the NTSB
+assisted on (Brazil 52, Australia 50, UK 28, ...). Rate file restricted to
+Country == 'United States': 1,226 events. Corpus keeps all countries (text
+only), and 192 corpus rows are Canadian - never counted, so no double count
+with CADORS.
+NTSB AirportID is mostly an FAA code ('3M7', 'PEX'). Resolved via ident ->
+FAA local_code (open airports preferred; 81 local codes are duplicated) ->
+'K'+code -> IATA. 95% of US rows with an AirportID match; the rest are
+'NONE', 'PVT', or Puerto Rico (filed under country PR).
+
+### NTSB times
+EventDate carries a Z suffix. Date-only events appear at 04:00/05:00Z
+(midnight US Eastern); those times are blanked. After the US filter only 2
+rate-file rows are affected.
+
+### Multi-aircraft NTSB fields
+N#, Make, Model, Operator and AirCraftDamage are comma-joined per aircraft,
+but operator names contain commas ('NetJets Aviation, Inc'). Fields are
+split only when their part count equals the N# count.
+
+### BTS
+7,043,316 flights, 12 months, 358 airports, 14 carriers (12-13 from 2026).
+- Time fields use 2400 for midnight (hundreds of rows per month); SQL Server
+  TIME rejects it, so 2400 -> 00:00.
+- BTS counts PR, VI, GU, AS and MP as domestic; OurAirports files them under
+  those country codes, so dim_airport includes them.
+- Palm Beach: BTS still reports PBI through 2026-06; OurAirports lists KPBI
+  with IATA DJT. Resolved via the 'K'+code fallback. All 358 codes resolve.
+- ~124 MB of INSERT SQL per month; ~30-90 min to load on a home connection.
+
+### Rate denominator does not fit the occurrence data (open)
+Measured on the staged data:
+- 86% of US NTSB rate-file events are FAR Part 91 (general aviation), and
+  85% of those matched to an airport are at airports with no BTS flights.
+- 0 CADORS occurrences are at BTS airports (BTS is US-only).
+BTS movements are airline-only, so they cannot serve as the denominator for
+most occurrences. Official all-traffic counts exist: Statistics Canada table
+23-10-0303 (monthly movements, airports with NAV CANADA services) and FAA
+ATADS (operations by airport, including GA). fact_airport_movements has a
+`source` column so these can be added beside the BTS rows.
+
+### CADORS mixes aircraft events with service reports
+First rate check (top airports by raw count, analysis window) ranked Arctic
+Bay (CYAB 287), Wemindji (CYNC 274), Quaqtaq (CYHA 256) and Aupaluk (CYLA 252)
+above Winnipeg. Nearly all of those are 'ATM - operations' events with no
+aircraft involved (CYNC: 274 of 274, 0 aircraft) - near-daily air navigation
+service reports from remote stations, not incidents. At CYYZ, 1,089 of 1,116
+occurrences involve an aircraft.
+Decision: maps and rates default to aircraft-involved occurrences
+(aircraft_count > 0); service reports are shown separately. Raw counts that
+blend the two are misleading even with a correct denominator.

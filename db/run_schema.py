@@ -1,33 +1,37 @@
-"""Deploy db/schema.sql to Azure SQL. Idempotent — safe to re-run."""
+"""Run a SQL file against Azure SQL, splitting on GO batch separators.
+
+Usage:
+    python db/run_schema.py                     # runs db/schema.sql
+    python db/run_schema.py db/migrate_001.sql  # runs a migration
+
+All SQL files in db/ are written to be idempotent, so re-running is safe.
+"""
 import os
 import re
-import pymssql
-from dotenv import load_dotenv
+import sys
 
-load_dotenv()
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "etl"))
+from db import get_connection  # noqa: E402
 
-with open("db/schema.sql", "r", encoding="utf-8") as f:
+path = sys.argv[1] if len(sys.argv) > 1 else "db/schema.sql"
+with open(path, "r", encoding="utf-8") as f:
     sql = f.read()
 
-# Azure SQL does not accept GO as a statement; it is a client-side batch separator.
+# GO is a client-side batch separator, not T-SQL; split on it.
 batches = [b.strip() for b in re.split(r"^\s*GO\s*$", sql, flags=re.MULTILINE)]
 batches = [b for b in batches if b]
 
-conn = pymssql.connect(
-    server=os.environ["SQL_SERVER"],
-    user=os.environ["SQL_USER"],
-    password=os.environ["SQL_PASSWORD"],
-    database=os.environ["SQL_DATABASE"],
-)
+conn = get_connection()
 cur = conn.cursor()
+print(f"running {path} ({len(batches)} batches)")
 
 for i, batch in enumerate(batches, 1):
     try:
         cur.execute(batch)
         conn.commit()
-        print(f"batch {i}/{len(batches)} ok")
+        print(f"  batch {i}/{len(batches)} ok")
     except Exception as e:
-        print(f"batch {i}/{len(batches)} FAILED: {e}")
+        print(f"  batch {i}/{len(batches)} FAILED: {e}")
         print(batch[:300])
         raise
 
@@ -36,11 +40,7 @@ cur.execute("""
     WHERE TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME
 """)
 tables = [r[0] for r in cur.fetchall()]
-print(f"\ntables ({len(tables)}):")
-for t in tables:
-    print("  ", t)
-
+print(f"\ntables ({len(tables)}): {', '.join(tables)}")
 cur.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS")
 print("views:", [r[0] for r in cur.fetchall()])
-
 conn.close()
