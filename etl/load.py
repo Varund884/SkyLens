@@ -10,6 +10,8 @@ Usage
   python etl/load.py --flights-only   just the flight table. Re-run to resume:
                                       complete months are skipped, a partial
                                       month is deleted and reloaded.
+  python etl/load.py --movements-only just fact_airport_movements (e.g. after
+                                      adding a new movement source)
   python etl/load.py                  everything
 
 Requires db/schema.sql, db/migrate_001.sql and db/seed_reference.py to have run.
@@ -203,6 +205,7 @@ def main():
     p.add_argument("--smoke", action="store_true")
     p.add_argument("--skip-flights", action="store_true")
     p.add_argument("--flights-only", action="store_true")
+    p.add_argument("--movements-only", action="store_true")
     a = p.parse_args()
 
     conn = get_connection()
@@ -210,7 +213,13 @@ def main():
     auth, cats = require_seed(cur)
     expected = {}
 
-    if a.flights_only:
+    if a.movements_only:
+        airports = lookup(cur, "SELECT airport_key, ident FROM dim_airport")
+        if not airports:
+            sys.exit("dim_airport is empty: run a full load first")
+        truncate(conn, "fact_airport_movements")
+        expected["fact_airport_movements"] = load_movements(conn, airports, smoke=False)
+    elif a.flights_only:
         airports = lookup(cur, "SELECT airport_key, ident FROM dim_airport")
         operators = lookup(cur, "SELECT operator_key, iata_code FROM dim_operator")
         if not airports:
