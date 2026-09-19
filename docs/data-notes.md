@@ -8,6 +8,8 @@
 | ntsb_12mo.csv | NTSB CAROL | 2025-07-01 to 2026-06-30 | US occurrences, counted in rates |
 | ntsb_corpus.csv | NTSB CAROL (4 merged exports) | 2014-01-01 to 2024-12-31 | Text corpus, never counted |
 | BTS on-time (12 CSVs) | transtats.bts.gov | 2025-07 to 2026-06 | US flight operations + rate denominator |
+| 23100296-SDMX.zip | Statistics Canada table 23-10-0296 | 2025-07 to 2026-06 | Canadian rate denominator |
+| faa_atads_daily.xls | FAA ATADS (aspm.faa.gov/opsnet) | 2025-07-01 to 2026-06-30 | US towered-airport rate denominator |
 | OurAirports (5 CSVs) | ourairports.com, CC0 | current | Airport reference and map geometry |
 | 4 PDFs | FAA, TC, NTSB, TSB | - | Retrieval grounding corpus |
 
@@ -263,16 +265,67 @@ split only when their part count equals the N# count.
   with IATA DJT. Resolved via the 'K'+code fallback. All 358 codes resolve.
 - ~124 MB of INSERT SQL per month; ~30-90 min to load on a home connection.
 
-### Rate denominator does not fit the occurrence data (open)
-Measured on the staged data:
-- 86% of US NTSB rate-file events are FAR Part 91 (general aviation), and
-  85% of those matched to an airport are at airports with no BTS flights.
-- 0 CADORS occurrences are at BTS airports (BTS is US-only).
-BTS movements are airline-only, so they cannot serve as the denominator for
-most occurrences. Official all-traffic counts exist: Statistics Canada table
-23-10-0303 (monthly movements, airports with NAV CANADA services) and FAA
-ATADS (operations by airport, including GA). fact_airport_movements has a
-`source` column so these can be added beside the BTS rows.
+### Rate denominator
+BTS movements are airline-only and cannot serve most occurrences: 86% of US
+NTSB rate-file events are FAR Part 91 (general aviation), 85% of those with an
+airport are at airports with no BTS flights, and no CADORS occurrence is at a
+BTS airport.
+
+Canada - resolved with Statistics Canada table 23-10-0296 ("Aircraft
+movements, by class of operation, airports with NAV CANADA services and other
+selected airports, monthly"), total itinerant + local movements.
+- Table 23-10-0303, the obvious first choice, has province totals only.
+- SDMX download: 29 monthly releases, each re-sending recent months with
+  revisions; the latest release wins per airport-month.
+- 126 airports, identified by name only. db/map_statcan_airport.csv maps them
+  to ICAO idents: 113 automatic, 13 corrected by hand, all reviewed. The
+  automatic matcher's errors included Hamilton -> "Hampton", Lethbridge -> a
+  private strip, and several airports -> their seaplane bases.
+- 5 airports publish no data for the whole window (Fort Smith, Hall Beach,
+  Peace River, Resolute Bay, Stephenville); left out, never zero-filled.
+  121 airports have all 12 months; total 5,759,001 movements, equal to
+  StatCan's own all-airports total.
+- These airports cover 96% of aircraft-involved CADORS occurrences at an
+  airport (10,243 of 10,664); the rest are scattered small fields with <=10
+  events each, shown as counts without a rate.
+- Monthly grain, stored on the first of each month.
+Rates are per total movements, which include local training circuits. Busy
+training airports (Boundary Bay: 241k movements, 2.7 per 10k) therefore read
+low. Disclose on the About page.
+
+US - resolved for towered airports with FAA ATADS (Air Traffic Activity
+Data System), Standard Report, grouped by Date and Airport, date Range
+07/01/2025 to 06/30/2026.
+- The "Excel" export is an HTML table in latin-1. The embedded query must
+  read YYYYMMDD>=20250701 AND YYYYMMDD<=20260630; a first attempt with two
+  single dates returned only those two days. etl/faa.py checks the range,
+  and that the parsed rows add up to the report's own grand total
+  (56,961,862 operations).
+- 528 towered airports, 190,404 airport-days. All Facility codes (FAA LOCIDs)
+  match an open airport through local_code; none unmatched, none shared.
+- Operations = air carrier + air taxi + GA + military, itinerant + local; one
+  takeoff or landing each, same unit as BTS and StatCan.
+- Counted only while the tower is open, so part-time towers under-count.
+  245 towers report fewer than 365 days (closed days, new towers such as
+  Trent Lott KPQL at 150 days); missing days are left out, never zero-filled.
+- FAA >= BTS at every one of the 285 airports in both (median 6x, O'Hare
+  1.3x, Orlando Sanford 21x from flight training). FAA replaces BTS for the
+  whole airport; each airport keeps exactly one source.
+- BTS remains the denominator for 73 airline airports without an FAA tower
+  (mostly Alaska and small western fields), where it under-counts.
+- US rate-file occurrences at an airport with a denominator: 276 of 870
+  (was 134 with BTS only): 261 FAA, 15 BTS. The other 594 are at non-towered
+  general-aviation fields, for which no official count exists; they are shown
+  as counts without a rate.
+
+Combined fact_airport_movements: 722 airports (528 faa, 73 bts, 121 statcan),
+215,881 rows, 62,869,907 movements.
+
+OurAirports data issues found while matching:
+- Stephenville (CYJT) is marked closed, but StatCan still reports its traffic.
+- CA-1292 is a malformed record named "YEG", typed large_airport in Edmonton,
+  with coordinates in rural Saskatchewan. It would render as a false major
+  airport on the map; exclude it from map queries.
 
 ### CADORS mixes aircraft events with service reports
 First rate check (top airports by raw count, analysis window) ranked Arctic
