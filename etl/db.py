@@ -34,6 +34,11 @@ def get_connection(quiet: bool = False):
             return conn
         except Exception as e:
             last_error = e
+            if "40615" in str(e):
+                raise RuntimeError(
+                    "Azure SQL firewall blocked this computer (error 40615): your IP address is not "
+                    "allowed. In the portal open the server > Security > Networking > "
+                    "'Add your client IPv4 address' > Save, then run again.") from None
             if attempt < _RETRIES:
                 if not quiet:
                     print(f"database waking, retrying in {_WAIT_SECONDS}s "
