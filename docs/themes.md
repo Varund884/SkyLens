@@ -16,6 +16,8 @@ and mean themes overlap rather than separate cleanly:
 | 14 | 0.123 |
 | 16 | 0.133 |
 
+**Caveat on "Change in share":** only 2% of fatal and 61% of non-fatal NTSB occurrences in the last twelve months had a published probable cause when the data was downloaded, because final reports on serious accidents take a year or more. Last-twelve-month themes therefore lean toward simple, quickly closed accidents, and themes typical of longer investigations (fuel exhaustion, undetermined power loss) look rarer than they are. Treat the change column as descriptive only.
+
 | # | Theme | Corpus | Last 12 months | Change in share | Example |
 |---|---|---|---|---|---|
 | 11 | Runway excursion due to directional loss | 486 | 161 | +52% | The pilot’s failure to maintain directional control during landing, which resulted in a runway excursion and collision with terrain. |

@@ -51,3 +51,9 @@ def from_bytes(b: bytes) -> np.ndarray:
 
 def hex_literal(b: bytes) -> str:
     return "0x" + b.hex()
+
+
+def search_client_args(service: str):
+    """(endpoint, AzureKeyCredential) for SEARCH / DOCINTEL / LANGUAGE."""
+    from azure.core.credentials import AzureKeyCredential
+    return os.environ[f"AZURE_{service}_ENDPOINT"], AzureKeyCredential(os.environ[f"AZURE_{service}_KEY"])

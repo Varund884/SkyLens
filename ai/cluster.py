@@ -29,6 +29,7 @@ from db import get_connection
 K = 12
 SEED = 42
 K_CHECK = (8, 10, 12, 14, 16)
+CAVEAT = ('**Caveat on "Change in share":** only 2% of fatal and 61% of non-fatal NTSB occurrences in the last twelve months had a published probable cause when the data was downloaded, because final reports on serious accidents take a year or more. Last-twelve-month themes therefore lean toward simple, quickly closed accidents, and themes typical of longer investigations (fuel exhaustion, undetermined power loss) look rarer than they are. Treat the change column as descriptive only.')
 PROMPT = ("Given these aviation occurrence summaries, output a short 3-6 word label "
           "describing what they have in common. Output only the label.")
 
@@ -117,6 +118,7 @@ def write_doc(d, t, labels, sil):
              "and mean themes overlap rather than separate cleanly:", "",
              "| k | silhouette |", "|---|---|"]
     lines += [f"| {k} | {s:.3f} |" for k, s in sil.items()]
+    lines += ["", CAVEAT]
     lines += ["", "| # | Theme | Corpus | Last 12 months | Change in share | Example |",
               "|---|---|---|---|---|---|"]
     for c, r in t.sort_values("member_count", ascending=False).iterrows():

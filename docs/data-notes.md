@@ -337,3 +337,14 @@ occurrences involve an aircraft.
 Decision: maps and rates default to aircraft-involved occurrences
 (aircraft_count > 0); service reports are shown separately. Raw counts that
 blend the two are misleading even with a correct denominator.
+
+### Probable cause is missing for most recent serious accidents - verified
+The NTSB publishes ProbableCause only with the final report. In the analysis
+window 653 of 1,226 rate-file occurrences have it, but only 2% of fatal ones
+(3 of 168) against 61% of non-fatal ones, and 35% for April-June 2026 against
+63% for July-September 2025. So everything built from NTSB text in the window
+(themes, classifier predictions, plain-language summaries) covers mostly
+non-fatal, quickly closed accidents. Themes' growth_rate is descriptive only
+and should not be shown as a trend without this caveat. Counts and rates are
+unaffected: they use every occurrence, with or without text.
+
