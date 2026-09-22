@@ -97,6 +97,13 @@ export default function AirportPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
+        {r.occurrences === 0 ? (
+          <section className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 text-sm text-slate-400">
+            Nothing was reported to the NTSB at this airport in the twelve months to June 2026.
+            Only accidents and serious incidents are recorded, so a busy airport with none is normal.
+            The operations figures above still describe how it ran.
+          </section>
+        ) : (
         <section className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
           <h2 className="text-sm font-medium text-slate-200">Occurrences by month</h2>
           <div className="mt-3 h-52 sm:h-60">
@@ -112,7 +119,9 @@ export default function AirportPage() {
             </ResponsiveContainer>
           </div>
         </section>
+        )}
 
+        {r.categories.length > 0 && (
         <section className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
           <h2 className="text-sm font-medium text-slate-200">
             What was reported
@@ -141,6 +150,7 @@ export default function AirportPage() {
           </div>
           <p className="mt-2 text-xs text-slate-500">"Other" is left out: it is a quarter of Canadian records and says nothing.</p>
         </section>
+        )}
       </div>
 
       {r.themes.length > 0 && (
@@ -157,6 +167,7 @@ export default function AirportPage() {
         </section>
       )}
 
+      {r.occurrences > 0 && (
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-medium text-slate-200">Occurrences</h2>
@@ -193,6 +204,7 @@ export default function AirportPage() {
             </>
           ))}
       </section>
+      )}
 
       <p className="pb-6 text-xs text-slate-500">
         Report generated {r.generated_at.slice(0, 16)} from Transport Canada CADORS, NTSB CAROL, FAA ATADS,
@@ -209,15 +221,22 @@ function OccurrenceRow({ o }: { o: Occurrence }) {
       <div className="flex flex-wrap items-baseline gap-2 text-xs text-slate-400">
         <span className="font-medium text-slate-200">{o.date}{o.time_utc ? ` ${o.time_utc}Z` : ''}</span>
         <span>{o.occurrence_type}</span>
-        <span className="rounded bg-slate-800 px-1.5 py-0.5">
-          {categoryName(o.category_code)}
+        <span className="rounded bg-slate-800 px-1.5 py-0.5"
+              title={o.category_code ? undefined
+                : 'The NTSB assigns a cause only when it publishes the final report, which can take over a year'}>
+          {o.category_code ? categoryName(o.category_code)
+            : o.authority === 'NTSB' ? 'Awaiting final report' : 'Uncategorised'}
           {o.category_is_predicted && <PredictedBadge confidence={o.category_confidence} />}
         </span>
         {o.flight_number && <span>{o.flight_number}</span>}
         {o.registration && <span>{o.registration}</span>}
         {(o.fatalities ?? 0) > 0 && <span className="font-medium text-red-400">{o.fatalities} fatalities</span>}
       </div>
-      <p className="mt-1 text-sm text-slate-100">{o.summary ?? 'No description was published for this record.'}</p>
+      <p className="mt-1 text-sm text-slate-100">
+        {o.summary ?? (o.authority === 'NTSB'
+          ? 'The NTSB has not yet published its report on this accident.'
+          : 'No description was published for this record.')}
+      </p>
       <button onClick={() => setOpen(v => !v)} className="mt-1 text-xs text-sky-400">
         {open ? 'Hide sources' : 'Sources'}
       </button>

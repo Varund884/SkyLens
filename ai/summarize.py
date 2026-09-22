@@ -41,7 +41,7 @@ SYSTEM = ("You explain aviation occurrence reports to non-experts. Using ONLY th
 
 SELECT = """
 SELECT f.occurrence_key, a.name, f.occurrence_type, f.event_names, f.phase_of_flight,
-       f.damage, f.source_text
+       f.damage, f.source_text, f.fatalities, f.injuries
 FROM fact_occurrence f
 JOIN dim_source_authority a ON a.authority_key = f.authority_key
 WHERE f.in_analysis_window = 1 AND f.narrative_plain IS NULL
@@ -58,9 +58,20 @@ def clean(v) -> str:
 
 def model_input(row) -> str | None:
     """Text the model summarises. None when there is nothing to describe."""
-    _, authority, occ_type, events, phase, damage, text = row
+    _, authority, occ_type, events, phase, damage, text, fatalities, injuries = row
     if clean(authority) == "NTSB":
-        return clean(text) or None
+        if clean(text):
+            return clean(text)
+        # The NTSB publishes a probable cause only with the final report, which
+        # takes a year or more. Until then describe what is known: the type of
+        # event, the damage and whether anyone was hurt.
+        parts = [clean(v) for v in (occ_type, phase, damage) if clean(v)]
+        if clean(fatalities) not in ("", "0"):
+            parts.append(f"{clean(fatalities)} fatalities")
+        elif clean(injuries) not in ("", "0"):
+            parts.append(f"{clean(injuries)} injuries")
+        parts.append("investigation not yet complete, no probable cause published")
+        return " | ".join(parts) if clean(occ_type) else None
     parts = [clean(v) for v in (occ_type, events, phase, damage) if clean(v)]
     return " | ".join(parts) if clean(events) else None
 
