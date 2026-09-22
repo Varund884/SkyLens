@@ -113,8 +113,12 @@ def build_payloads(occ, mov, air, cat, thm, fl, src):
     flights = fl.set_index("airport_key")
     sources = src.set_index("airport_key")
 
+    # Any airport with enough occurrences gets a report. US airports rarely
+    # reach that bar (the NTSB records only accidents and serious incidents,
+    # ~1,200 a year nationwide), so airports with airline traffic data also get
+    # one: their page is worth showing for operations even with few events.
     counts = occ.groupby("airport_key").size()
-    keep = counts[counts >= MIN_OCCURRENCES].index
+    keep = counts[counts >= MIN_OCCURRENCES].index.union(fl["airport_key"])
     rate_by_key = {}
     payloads = {}
 
@@ -123,8 +127,10 @@ def build_payloads(occ, mov, air, cat, thm, fl, src):
             continue
         a = air_by_key.loc[key]
         d = occ[occ["airport_key"] == key]
+        if len(d) < MIN_OCCURRENCES and key not in flights.index:
+            continue
         total_moves = int(moves.get(key, 0))
-        rate = round(len(d) / total_moves * 10000, 2) if total_moves else None
+        rate = round(len(d) / total_moves * 10000, 2) if total_moves and len(d) else None
         rate_by_key[key] = rate
 
         by_month = d.groupby("month").size().reindex(months, fill_value=0)
@@ -144,7 +150,7 @@ def build_payloads(occ, mov, air, cat, thm, fl, src):
         second_n = int(by_month.reindex(sorted(second_half)).sum())
         mf, ms = int(mov_first.get(key, 0)), int(mov_second.get(key, 0))
         change = None
-        if mf and ms:
+        if mf and ms and len(d):
             r1, r2 = first_n / mf * 10000, second_n / ms * 10000
             change = round((r2 - r1) / r1 * 100, 1) if r1 else None
 
@@ -179,16 +185,26 @@ def build_payloads(occ, mov, air, cat, thm, fl, src):
             }
         payloads[key] = payload
 
-    # peer comparison: median rate among airports of the same type that have one
-    peers = pd.DataFrame([{"key": k, "type": payloads[k]["airport_type"], "rate": payloads[k]["rate_per_10k"]}
+    # Peer comparison is per country as well as per size. Canada logs every
+    # reportable occurrence (bird sightings, go-arounds, service reports) while
+    # the NTSB logs only accidents and serious incidents, so a Canadian rate
+    # and a US rate are not the same measurement and must not be compared.
+    peers = pd.DataFrame([{"key": k, "type": payloads[k]["airport_type"],
+                           "country": payloads[k]["country"], "rate": payloads[k]["rate_per_10k"]}
                           for k in payloads])
-    med = peers.dropna(subset=["rate"]).groupby("type")["rate"].median().round(2).to_dict()
+    rated = peers[peers["rate"].notna() & (peers["rate"] > 0)]
+    med = rated.groupby(["country", "type"])["rate"].median().round(2).to_dict()
+    n_peers = rated.groupby(["country", "type"]).size().to_dict()
     for k, p in payloads.items():
-        p["peer_median_rate_per_10k"] = med.get(p["airport_type"])
+        key = (p["country"], p["airport_type"])
+        p["peer_median_rate_per_10k"] = med.get(key)
+        p["peer_group"] = f"{'Canadian' if p['country'] == 'CA' else 'US'} {p['airport_type'].replace('_', ' ')}s"
+        p["peer_count"] = int(n_peers.get(key, 0))
     return payloads, occ
 
 
 def examples(d, n=8):
+    """Empty for an airport with nothing reported; the summary then says so."""
     """The most common distinct plain-language summaries at this airport."""
     texts = [t for t in d["narrative"].dropna() if t.strip()]
     return [t for t, _ in Counter(texts).most_common(n)]
@@ -206,7 +222,9 @@ def add_summaries(payloads, occ, client, model):
                  f"Occurrences reported in the last 12 months: {p['occurrences']}"
                  + (f" ({p['accidents']} accidents)" if p['accidents'] else "")
                  + (f"\nMost common categories: " + ", ".join(c['code'] for c in p['categories'][:4]) if p['categories'] else "")
-                 + "\nExamples of what was reported:\n" + "\n".join(f"- {t}" for t in ex))
+                 + ("\nExamples of what was reported:\n" + "\n".join(f"- {t}" for t in ex) if ex
+                    else "\nNo occurrence descriptions are available for this airport. Say only that "
+                         "few or no occurrences were reported in the period."))
         r = client.chat.completions.create(model=model, temperature=0, max_tokens=140,
                                            messages=[{"role": "system", "content": SYSTEM},
                                                      {"role": "user", "content": facts}])
