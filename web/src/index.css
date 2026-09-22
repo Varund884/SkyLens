@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+:root { color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: #020617;                       /* slate-950 */
+  color: #e2e8f0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Tailwind v4 borders default to currentColor; pin them to a dark hairline. */
+*, ::before, ::after { border-color: #1e293b; }
+
+/* Dark basemap without paying for one: invert OpenStreetMap's tiles, spin the
+   hue back so water stays blue-ish, then drain and dim what is left so the
+   coloured airport dots are the only bright thing on screen. */
+.leaflet-container { background: #0b1220; }
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) grayscale(0.85) brightness(0.85) contrast(0.95);
+}
+
+.leaflet-tooltip {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+.leaflet-tooltip-left::before { border-left-color: #334155; }
+.leaflet-tooltip-right::before { border-right-color: #334155; }
+.leaflet-tooltip-top::before { border-top-color: #334155; }
+.leaflet-tooltip-bottom::before { border-bottom-color: #334155; }
+
+.leaflet-bar a, .leaflet-control-attribution {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+}
+.leaflet-bar a:hover { background: #1e293b !important; }
+.leaflet-control-attribution a { color: #64748b !important; }
+
+::selection { background: #0ea5e9; color: #020617; }
