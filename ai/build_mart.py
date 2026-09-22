@@ -130,7 +130,7 @@ def build_payloads(occ, mov, air, cat, thm, fl, src):
         if len(d) < MIN_OCCURRENCES and key not in flights.index:
             continue
         total_moves = int(moves.get(key, 0))
-        rate = round(len(d) / total_moves * 10000, 2) if total_moves and len(d) else None
+        rate = round(len(d) / total_moves * 10000, 2) if total_moves else None
         rate_by_key[key] = rate
 
         by_month = d.groupby("month").size().reindex(months, fill_value=0)
