@@ -36,14 +36,16 @@ WORKERS = 3
 TOP_K = 3
 SYSTEM = ("You explain aviation occurrence reports to non-experts. Using ONLY the provided "
           "reference text and the report itself, write ONE sentence in plain English describing "
-          "what happened. Do not speculate about causes. Do not use jargon. Do not state or imply "
-          "any safety rating.")
+          "what happened. The report may name the official category it was filed under; say what "
+          "that category means in ordinary words rather than ignoring it. Do not speculate about "
+          "causes. Do not use jargon. Do not state or imply any safety rating.")
 
 SELECT = """
 SELECT f.occurrence_key, a.name, f.occurrence_type, f.event_names, f.phase_of_flight,
-       f.damage, f.source_text, f.fatalities, f.injuries
+       f.damage, f.source_text, f.fatalities, f.injuries, c.cictt_label
 FROM fact_occurrence f
 JOIN dim_source_authority a ON a.authority_key = f.authority_key
+LEFT JOIN dim_category c ON c.category_key = f.category_key
 WHERE f.in_analysis_window = 1 AND f.narrative_plain IS NULL
 """
 
@@ -58,7 +60,7 @@ def clean(v) -> str:
 
 def model_input(row) -> str | None:
     """Text the model summarises. None when there is nothing to describe."""
-    _, authority, occ_type, events, phase, damage, text, fatalities, injuries = row
+    _, authority, occ_type, events, phase, damage, text, fatalities, injuries, category = row
     if clean(authority) == "NTSB":
         if clean(text):
             return clean(text)
@@ -71,8 +73,15 @@ def model_input(row) -> str | None:
         elif clean(injuries) not in ("", "0"):
             parts.append(f"{clean(injuries)} injuries")
         parts.append("investigation not yet complete, no probable cause published")
+        if clean(category):
+            parts.insert(0, f"Category: {clean(category)}")
         return " | ".join(parts) if clean(occ_type) else None
+    # The category is the authority's own classification. Without it the model
+    # hedges: a bird strike whose event text is vague came out as "an
+    # operational issue occurred", never mentioning the bird.
     parts = [clean(v) for v in (occ_type, events, phase, damage) if clean(v)]
+    if clean(category):
+        parts.insert(1, f"Category: {clean(category)}")
     return " | ".join(parts) if clean(events) else None
 
 
@@ -112,21 +121,28 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--limit", type=int, help="only summarise this many distinct inputs")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--refresh", action="store_true",
+                   help="rewrite summaries that already exist, reusing the cache (safe to re-run)")
+    p.add_argument("--regenerate", action="store_true",
+                   help="with --refresh, also discard the cache and call the model again (costs money)")
     a = p.parse_args()
 
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute(SELECT)
+    cur.execute(SELECT.replace("AND f.narrative_plain IS NULL", "") if (a.refresh or a.regenerate) else SELECT)
     rows = cur.fetchall()
     pairs = [(r[0], model_input(r)) for r in rows]
     usable = [(k, t) for k, t in pairs if t]
-    cache = json.loads(CACHE.read_text()) if CACHE.exists() else {}
+    # --refresh alone reuses whatever is cached, so an interrupted run can be
+    # resumed for free; only --regenerate pays to call the model again.
+    cache = {} if a.regenerate else (json.loads(CACHE.read_text()) if CACHE.exists() else {})
     distinct = {}
     for _, t in usable:
         distinct.setdefault(key_of(t), t)
     pending = [t for h, t in distinct.items() if h not in cache]
     todo = pending[:a.limit] if a.limit else pending
-    print(f"occurrences needing a summary: {len(usable):,} of {len(rows):,} "
+    print(("refreshing all summaries: " if a.refresh else "occurrences needing a summary: ")
+          + f"{len(usable):,} of {len(rows):,} "
           f"({len(rows) - len(usable):,} have nothing to describe)")
     print(f"distinct inputs: {len(distinct):,} | already summarised: {len(distinct) - len(pending):,} "
           f"| still missing: {len(pending):,} | doing now: {len(todo):,} "
