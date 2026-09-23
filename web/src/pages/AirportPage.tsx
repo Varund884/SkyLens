@@ -112,7 +112,9 @@ export default function AirportPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={m => m.slice(2)} />
                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
-                <ChartTooltip contentStyle={{ fontSize: 12, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
+                <ChartTooltip contentStyle={{ fontSize: 12, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }}
+                              labelStyle={{ color: '#e2e8f0' }}
+                              itemStyle={{ color: '#cbd5e1' }} />
                 <Line type="monotone" dataKey="occurrences" stroke="#0284c7" strokeWidth={2} dot={false} name="Occurrences" />
                 <Line type="monotone" dataKey="rolling_3m" stroke="#64748b" strokeDasharray="4 3" dot={false} name="3-month average" />
               </LineChart>
@@ -138,6 +140,8 @@ export default function AirportPage() {
                 <YAxis type="category" dataKey="code" width={120} tick={{ fontSize: 11, fill: '#94a3b8' }}
                        tickFormatter={c => categoryName(c)} />
                 <ChartTooltip contentStyle={{ fontSize: 12, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }}
+                              labelStyle={{ color: '#e2e8f0' }}
+                              itemStyle={{ color: '#cbd5e1' }}
                               formatter={(v) => [String(v), 'occurrences']}
                               labelFormatter={c => categoryName(String(c))} />
                 <Bar dataKey="occurrences" radius={[0, 4, 4, 0]}>

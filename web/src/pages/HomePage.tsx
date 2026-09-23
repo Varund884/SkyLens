@@ -4,35 +4,11 @@
  *  The globe is pinned while the opening copy scrolls over it and fades, the
  *  way product pages do it; each panel reveals as it enters the viewport.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Globe from '../components/Globe'
 import MapPage from './MapPage'
-
-/** Reveal children once they scroll into view. */
-function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [shown, setShown] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      ([e]) => e.isIntersecting && setShown(true),
-      { threshold: 0.25 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return (
-    <div
-      ref={ref}
-      style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-700 ease-out ${shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-    >
-      {children}
-    </div>
-  )
-}
+import { Reveal } from '../components/ui'
 
 const THINGS = [
   {
@@ -87,11 +63,10 @@ export default function HomePage() {
           >
             <p className="text-xs uppercase tracking-[0.3em] text-sky-400">United States · Canada</p>
             <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-[1.15] text-slate-50 sm:text-5xl lg:text-6xl">
-              What actually happens<br />at the airports you fly through
+              Aviation Safety<br />Without the Jargon
             </h1>
             <p className="mt-4 max-w-xl text-sm text-slate-300 sm:mt-5 sm:text-lg">
-              Twelve months of official aviation reports, turned into numbers you can compare
-              and sentences you can read.
+              Official incident data for airports across the US and Canada.<br /> Analyzed, Scored and Explained.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link to="/map" className="rounded-full bg-sky-500 px-5 py-2.5 text-sm font-medium text-slate-950 hover:bg-sky-400">
