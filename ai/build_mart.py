@@ -26,6 +26,7 @@ Each payload holds:
 import argparse
 import json
 import threading
+import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -216,6 +217,16 @@ def add_summaries(payloads, occ, client, model):
     lock, cost, done, failed = threading.Lock(), [0.0], [0], []
 
     def work(key):
+        """Wait out the deployment's per-minute limit rather than failing the row."""
+        from openai import RateLimitError
+        for attempt in range(12):
+            try:
+                return _write_one(key)
+            except RateLimitError:
+                time.sleep(min(10 * (attempt + 1), 60))
+        return _write_one(key)
+
+    def _write_one(key):
         p = payloads[key]
         ex = examples(occ[occ["airport_key"] == key])
         facts = (f"Airport: {p['name']} ({p['ident']}), {p['municipality']}, {p['country']}\n"
