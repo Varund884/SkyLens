@@ -204,7 +204,9 @@ def flight_history(
     clause = " AND ".join(where)
 
     rows = query(f"""
-        SELECT TOP {limit} f.date_key, og.ident AS origin, de.ident AS destination,
+        SELECT TOP {limit} f.date_key,
+               COALESCE(NULLIF(og.iata_code, ''), og.ident) AS origin,
+               COALESCE(NULLIF(de.iata_code, ''), de.ident) AS destination,
                f.sched_dep, f.actual_dep, f.dep_delay_min, f.arr_delay_min,
                f.cancelled, f.cancellation_code, f.diverted, f.tail_number, o.name AS operator
         FROM fact_flight_performance f

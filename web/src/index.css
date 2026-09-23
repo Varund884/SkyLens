@@ -41,3 +41,56 @@ body {
 .leaflet-control-attribution a { color: #64748b !important; }
 
 ::selection { background: #0ea5e9; color: #020617; }
+
+/* ---------- motion ---------------------------------------------------- */
+
+/* Content arrives from just below, staggered with an inline animation-delay. */
+@keyframes sl-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.sl-rise { animation: sl-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Loading state: an aircraft crossing the card while the query runs. */
+@keyframes sl-fly {
+  0%   { left: -12%; transform: translateY(5px) rotate(-5deg); }
+  50%  { left: 50%;  transform: translateY(-9px) rotate(4deg); }
+  100% { left: 112%; transform: translateY(5px) rotate(-5deg); }
+}
+.sl-plane {
+  position: absolute;
+  top: 50%;
+  margin-top: -12px;
+  animation: sl-fly 2.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+/* The dashed route the aircraft follows, sliding to suggest forward motion. */
+@keyframes sl-dash { to { background-position-x: -28px; } }
+.sl-route {
+  background-image: linear-gradient(90deg, #334155 0 14px, transparent 14px 28px);
+  background-size: 28px 2px;
+  background-repeat: repeat-x;
+  background-position: center;
+  animation: sl-dash 0.9s linear infinite;
+}
+
+/* Slow drift for decorative background marks. */
+@keyframes sl-drift {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.sl-drift { animation: sl-drift 7s ease-in-out infinite; }
+
+/* Dashed flight arcs on the ticket map, drifting toward the destination. */
+@keyframes sl-arc { to { stroke-dashoffset: -12; } }
+.sl-arc { stroke-dasharray: 1.2 1.6; animation: sl-arc 2.6s linear infinite; }
+
+/* Hub dots breathing, staggered so the map never blinks as one. */
+@keyframes sl-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.75; } }
+.sl-pulse { animation: sl-pulse 3.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-rise, .sl-plane, .sl-route, .sl-drift, .sl-arc, .sl-pulse { animation: none; }
+  .sl-pulse { opacity: 0.55; }
+  .sl-plane { left: 50%; }
+}
