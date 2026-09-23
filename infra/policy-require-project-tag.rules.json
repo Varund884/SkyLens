@@ -1,0 +1,9 @@
+{
+  "if": {
+    "field": "[concat('tags[', parameters('tagName'), ']')]",
+    "notEquals": "[parameters('tagValue')]"
+  },
+  "then": {
+    "effect": "[parameters('effect')]"
+  }
+}

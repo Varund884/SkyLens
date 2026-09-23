@@ -1,0 +1,27 @@
+{
+  "tagName": {
+    "type": "String",
+    "defaultValue": "project",
+    "metadata": {
+      "displayName": "Tag name",
+      "description": "The tag every resource in scope must carry."
+    }
+  },
+  "tagValue": {
+    "type": "String",
+    "defaultValue": "skylens",
+    "metadata": {
+      "displayName": "Tag value",
+      "description": "The value that tag must have."
+    }
+  },
+  "effect": {
+    "type": "String",
+    "defaultValue": "Deny",
+    "allowedValues": ["Audit", "Deny", "Disabled"],
+    "metadata": {
+      "displayName": "Effect",
+      "description": "Deny blocks creation outright; Audit only records a violation."
+    }
+  }
+}
