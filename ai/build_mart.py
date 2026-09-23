@@ -26,6 +26,7 @@ Each payload holds:
 import argparse
 import json
 import threading
+import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -130,7 +131,7 @@ def build_payloads(occ, mov, air, cat, thm, fl, src):
         if len(d) < MIN_OCCURRENCES and key not in flights.index:
             continue
         total_moves = int(moves.get(key, 0))
-        rate = round(len(d) / total_moves * 10000, 2) if total_moves and len(d) else None
+        rate = round(len(d) / total_moves * 10000, 2) if total_moves else None
         rate_by_key[key] = rate
 
         by_month = d.groupby("month").size().reindex(months, fill_value=0)
@@ -216,6 +217,16 @@ def add_summaries(payloads, occ, client, model):
     lock, cost, done, failed = threading.Lock(), [0.0], [0], []
 
     def work(key):
+        """Wait out the deployment's per-minute limit rather than failing the row."""
+        from openai import RateLimitError
+        for attempt in range(12):
+            try:
+                return _write_one(key)
+            except RateLimitError:
+                time.sleep(min(10 * (attempt + 1), 60))
+        return _write_one(key)
+
+    def _write_one(key):
         p = payloads[key]
         ex = examples(occ[occ["airport_key"] == key])
         facts = (f"Airport: {p['name']} ({p['ident']}), {p['municipality']}, {p['country']}\n"
