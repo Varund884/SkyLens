@@ -6,6 +6,7 @@ import MapPage from './pages/MapPage'
 import AirportPage from './pages/AirportPage'
 import FlightPage from './pages/FlightPage'
 import AboutPage from './pages/AboutPage'
+import AdminPage from './pages/AdminPage'
 
 const client = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false } },
@@ -22,6 +23,8 @@ export default function App() {
             <Route path="/airport/:ident" element={<AirportPage />} />
             <Route path="/flight" element={<FlightPage />} />
             <Route path="/about" element={<AboutPage />} />
+            {/* Protected by Entra ID at the platform level, see staticwebapp.config.json */}
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </Shell>
       </BrowserRouter>

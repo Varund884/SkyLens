@@ -105,6 +105,14 @@ export interface FlightHistory {
 
 export interface Category { code: string; label: string; occurrences: number }
 
+export interface Health {
+  status: string
+  database: string
+  airports: number | null
+  occurrences_in_window: number | null
+  airport_reports: number | null
+}
+
 const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 export class ApiError extends Error {
@@ -135,6 +143,7 @@ export const api = {
   },
   flight: (number: string) => get<FlightHistory>(`/flights/${encodeURIComponent(number)}`),
   categories: () => get<Category[]>('/categories'),
+  health: () => get<Health>('/health'),
 }
 
 /** Category codes are jargon; these are the plain labels the pages show. */
