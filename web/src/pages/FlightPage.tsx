@@ -2,6 +2,7 @@
  *  delays, cancellations and every leg in the 12-month window. */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api'
 import { ErrorBox, Stat, Tilt } from '../components/ui'
@@ -15,6 +16,17 @@ const Plane = ({ className = '' }: { className?: string }) => (
     <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
   </svg>
 )
+
+/** A route code that leads somewhere: the table shows JFK, the report lives at KJFK. */
+function AirportLink({ code, ident }: { code: string | null; ident: string | null }) {
+  if (!code) return <>—</>
+  if (!ident) return <>{code}</>
+  return (
+    <Link to={`/airport/${ident}`} className="underline-offset-4 hover:text-sky-300 hover:underline">
+      {code}
+    </Link>
+  )
+}
 
 function LoadingCard({ number }: { number: string }) {
   return (
@@ -262,7 +274,11 @@ export default function FlightPage() {
                     {legs.map((l, i) => (
                       <tr key={i} className="border-t border-slate-800 transition-colors hover:bg-slate-800/40">
                         <td className="px-3 py-2">{l.date}</td>
-                        <td className="px-3 py-2 text-slate-300">{l.origin} → {l.destination}</td>
+                        <td className="px-3 py-2 text-slate-300">
+                          <AirportLink code={l.origin} ident={l.origin_ident} />
+                          {' → '}
+                          <AirportLink code={l.destination} ident={l.destination_ident} />
+                        </td>
                         <td className="px-3 py-2 text-slate-300">{l.scheduled_departure ?? '—'}</td>
                         <td className="px-3 py-2 text-slate-300">{l.actual_departure ?? '—'}</td>
                         <td className="px-3 py-2">
@@ -285,6 +301,11 @@ export default function FlightPage() {
               </section>
 
               <p className="text-xs text-slate-500">
+                Safety occurrence reports are filed against an aircraft and an airport, not against a flight number, so
+                there is no per-flight incident history to show here. The airport codes above link to the full safety
+                report for each end of the route.
+                <br />
+                <br />
                 Source: US Bureau of Transportation Statistics on-time performance. Percentages cover every flight in the
                 window; the table lists the most recent {legs.length}.
               </p>

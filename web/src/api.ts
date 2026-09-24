@@ -81,6 +81,8 @@ export interface FlightLeg {
   date: string
   origin: string | null
   destination: string | null
+  origin_ident: string | null
+  destination_ident: string | null
   scheduled_departure: string | null
   actual_departure: string | null
   departure_delay_min: number | null

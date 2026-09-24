@@ -51,6 +51,8 @@ class FlightLeg(BaseModel):
     date: str
     origin: str | None = None
     destination: str | None = None
+    origin_ident: str | None = Field(None, description="ICAO ident, for linking to the airport report")
+    destination_ident: str | None = None
     scheduled_departure: str | None = None
     actual_departure: str | None = None
     departure_delay_min: int | None = None

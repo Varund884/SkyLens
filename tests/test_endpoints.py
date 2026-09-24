@@ -25,6 +25,7 @@ OCCURRENCE_ROW = {
 
 LEG_ROW = {
     "date_key": 20250704, "origin": "JFK", "destination": "LAX",
+    "origin_ident": "KJFK", "destination_ident": "KLAX",
     "sched_dep": "08:00:00", "actual_dep": "08:12:00", "dep_delay_min": 12,
     "arr_delay_min": 4, "cancelled": 0, "cancellation_code": None,
     "diverted": 0, "tail_number": "N787AA", "operator": "American Airlines",
@@ -185,6 +186,17 @@ def test_statistics_cover_every_leg_not_just_the_page(client, db):
     assert body["on_time_pct"] == round(300 / 342 * 100, 1)
     assert body["cancelled_pct"] == round(7 / 349 * 100, 1)
     assert body["routes"] == ["JFK-LAX"]
+
+
+def test_a_leg_carries_the_ident_needed_to_link_to_the_airport_report(client, db):
+    """The table shows JFK; the link has to go to /airport/KJFK."""
+    db.on("SELECT TOP 50 f.date_key", [LEG_ROW])
+    db.on("SELECT COUNT(*) AS legs", [{"legs": 1, "cancelled": 0, "measured": 1,
+                                       "on_time": 1, "worst": 12}])
+    db.on("PERCENTILE_CONT", [{"median_delay": 12.0}])
+    leg = client.get("/flights/AA1").json()["legs"][0]
+    assert (leg["origin"], leg["origin_ident"]) == ("JFK", "KJFK")
+    assert (leg["destination"], leg["destination_ident"]) == ("LAX", "KLAX")
 
 
 def test_a_cancellation_code_becomes_a_reason(client, db):

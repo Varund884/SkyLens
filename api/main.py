@@ -207,6 +207,7 @@ def flight_history(
         SELECT TOP {limit} f.date_key,
                COALESCE(NULLIF(og.iata_code, ''), og.ident) AS origin,
                COALESCE(NULLIF(de.iata_code, ''), de.ident) AS destination,
+               og.ident AS origin_ident, de.ident AS destination_ident,
                f.sched_dep, f.actual_dep, f.dep_delay_min, f.arr_delay_min,
                f.cancelled, f.cancellation_code, f.diverted, f.tail_number, o.name AS operator
         FROM fact_flight_performance f
@@ -253,6 +254,7 @@ def flight_history(
     legs = [FlightLeg(
         date=f"{str(r['date_key'])[:4]}-{str(r['date_key'])[4:6]}-{str(r['date_key'])[6:]}",
         origin=r["origin"], destination=r["destination"],
+        origin_ident=r.get("origin_ident"), destination_ident=r.get("destination_ident"),
         scheduled_departure=str(r["sched_dep"])[:5] if r["sched_dep"] else None,
         actual_departure=str(r["actual_dep"])[:5] if r["actual_dep"] else None,
         departure_delay_min=r["dep_delay_min"], arrival_delay_min=r["arr_delay_min"],

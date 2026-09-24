@@ -175,7 +175,9 @@ Full steps in [`docs/deploy.md`](docs/deploy.md).
 - **API** — Azure Functions (Flex Consumption), the FastAPI app handed over as ASGI
 - **Site** — Azure Static Web Apps, built from this repository by GitHub Actions
 - **Database** — Azure SQL serverless, which pauses when idle
-- **Admin page** — `/admin`, behind Entra ID sign-in
+- **Admin page** — `/admin`, behind platform sign-in. The Entra ID application is registered
+  and configured (`docs/deploy.md`); binding it to the site needs the Standard plan, so the
+  deployed Free-plan site uses the built-in provider instead
 - **Governance** — an Azure Policy rule requiring a `project` tag on every
   resource, so cost is attributable ([`infra/`](infra/))
 - **Container** — a `Dockerfile` for the API, for anywhere that runs containers

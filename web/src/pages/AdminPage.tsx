@@ -2,8 +2,10 @@
  *
  *  Static Web Apps handles the sign-in itself: the /admin route is declared
  *  with allowedRoles ["authenticated"] in staticwebapp.config.json, so an
- *  anonymous request never reaches this component — it is redirected to
- *  /.auth/login/aad first. The identity of whoever did sign in is available
+ *  anonymous request never reaches this component — the platform redirects to
+ *  its sign-in first. The identity provider depends on the hosting plan: the
+ *  Free plan offers the built-in GitHub provider, while a registered Entra ID
+ *  application (see docs/deploy.md) requires the Standard plan. The identity of whoever did sign in is available
  *  from /.auth/me, which the platform serves; there is no token handling and
  *  no client secret anywhere in this code.
  *
@@ -48,7 +50,7 @@ export default function AdminPage() {
         {user === undefined && <p className="mt-2 text-sm text-slate-400">Checking…</p>}
         {user === null && (
           <p className="mt-2 text-sm text-slate-400">
-            No sign-in layer here — this page is only protected once it is served by Static Web Apps.
+              No sign-in layer here — this page is only protected once it is served by Static Web Apps.
           </p>
         )}
         {user && (
