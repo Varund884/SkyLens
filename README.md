@@ -10,7 +10,9 @@ brings a full year of them together, expresses them as rates rather than raw
 counts so a regional field can be compared with a major hub, and writes each one
 out in a sentence anyone can follow.
 
-**Live site:** _(add URL)_ · **API:** _(add URL)_
+**Live site:** https://victorious-forest-063a7c30f.3.azurestaticapps.net · **API docs:** https://skylens-api-varun.azurewebsites.net/docs
+
+> The database is serverless and pauses when idle, so the first request after a quiet spell takes up to a minute while it wakes. Reload once if a panel is slow.
 
 ---
 
