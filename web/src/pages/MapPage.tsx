@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
+import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import { useQuery } from '@tanstack/react-query'
 import { api, type AirportPin } from '../api'
 import { Spinner } from '../components/ui'
@@ -125,10 +125,13 @@ export default function MapPage({ embedded = false }: { embedded?: boolean } = {
       <MapContainer
         center={[47, -95]} zoom={4} minZoom={3}
         scrollWheelZoom={!embedded}
+        zoomControl={false}
         className={embedded ? 'h-[70svh] w-full sm:h-[85vh]' : 'h-[calc(100svh-57px)] w-full'}
       >
         {/* OpenStreetMap's own tiles: free and keyless. CARTO's "light" basemap
             looks better but now watermarks every tile unless you buy a key. */}
+        {/* Top-left belongs to the search panel, so the zoom buttons move across. */}
+        <ZoomControl position="topright" />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
