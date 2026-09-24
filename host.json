@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "extensions": {
+    "http": {
+      "_comment": "No prefix: Azure forwards the whole path to FastAPI, so a prefix here would have to exist in FastAPI's routes too. /health is /health in all three places the app runs.",
+      "routePrefix": ""
+    }
+  },
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      }
+    }
+  },
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[4.*, 5.0.0)"
+  }
+}

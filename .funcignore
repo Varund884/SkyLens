@@ -1,0 +1,19 @@
+# Keep the deployment package to the API and its one shared helper. Everything
+# else in this repository builds the data; none of it runs on the server.
+.git*
+.venv/
+.vscode/
+__pycache__/
+*.pyc
+.env
+*.md
+ai/
+data/
+db/
+docs/
+infra/
+scripts/
+tests/
+web/
+requirements-dev.txt
+local.settings.json
