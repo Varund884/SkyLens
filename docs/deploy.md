@@ -88,7 +88,7 @@ run this then.
 minute and may time out once before it wakes:
 
 ```bash
-curl https://$FUNC.azurewebsites.net/api/health
+curl https://$FUNC.azurewebsites.net/health
 ```
 
 Expect `{"status":"ok","database":"connected", ...}`.
@@ -113,7 +113,7 @@ no idea where the API lives. Edit it and add an `env:` block to the
       - name: Build And Deploy
         uses: Azure/static-web-apps-deploy@v1
         env:
-          VITE_API_URL: https://skylens-api-varun.azurewebsites.net/api
+          VITE_API_URL: https://skylens-api-varun.azurewebsites.net
         with:
           ...
 ```
@@ -173,8 +173,8 @@ invoice.
 
 | Symptom | Cause |
 |---|---|
-| `/api/health` returns 503 | The database was asleep and did not wake inside the timeout. Call it again. |
-| `/api/health` times out repeatedly | The SQL firewall rule for Azure services is missing, or `SQL_*` app settings are wrong. |
+| `/health` returns 503 | The database was asleep and did not wake inside the timeout. Call it again. |
+| `/health` times out repeatedly | The SQL firewall rule for Azure services is missing, or `SQL_*` app settings are wrong. |
 | The site loads but every panel errors | `VITE_API_URL` was not set at build time, so the browser is calling `/api` on the static host. Check the built bundle. |
 | The site loads, the API works in curl, the browser shows a CORS error | The Function App's CORS list does not include the Static Web App's hostname. |
 | `/admin` shows the page without asking anyone to sign in | You are running locally. The route is only protected once Static Web Apps serves it. |
